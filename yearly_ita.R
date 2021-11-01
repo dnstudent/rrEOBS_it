@@ -2,32 +2,28 @@ library(colorspace)
 library(purrr)
 library(terra)
 
+source("load.R")
+
 path.temp <- "/Users/davidenicoli/Local_Workspace/LabClima/eobs_clino_yearly/"
 path.yearly <- "/Users/davidenicoli/Local_Workspace/Datasets/CLINO/yearly/"
-path.results <- "/Users/davidenicoli/OneDrive - Università degli Studi di Milano/Uni/Workspace/LabClima/rrEOBS_it/"
+path.results <- "/Users/davidenicoli/OneDrive - Università degli Studi di Milano/Uni/Workspace/LabClima/rrEOBS_it/results/"
 
 ################################
 ## LOADING high-res italian data
 ################################
 
 ### From provided file
-# file.clino <- paste0(path.yearly, "CLINO_GRID_ITA_P_FINALE_MONTHLY_ASCII_ANNO")
-# nrows <- 1320
-# ncols <-  1476
-# xmin <-  6.50417
-# ymax <-  47.49583
-# resolution = 1/120
-# clino.it <- rast(matrix(scan(file.clino), ncol = ncols, byrow = TRUE),
-#                  crs = "+proj=longlat +datum=WGS84")
-# ext(clino.it) <- ext(xmin, xmin + resolution*ncols, ymax - resolution*nrows, ymax)
-# varnames(clino.it) <- "rr"
-# names(clino.it) <- "yearly_mean"
-# writeRaster(clino.it, paste0(path.yearly, "clino_rr.tif"), overwrite = T)
+file.clino <- paste0(path.yearly, "CLINO_GRID_ITA_P_FINALE_MONTHLY_ASCII_ANNO")
+nrows <- 1320
+ncols <-  1476
+xmin <-  6.50417
+ymax <-  47.49583
+step <-  1/120
 
-### From cache
-clino.it.ycum <- rast(paste0(path.yearly, "clino_rr.tif"))
 # Upscaling
-clino.it.ycum.agg <- aggregate(clino.it.ycum, 12, "mean", na.rm = T)
+clino.it.ycum.agg <-
+  load.clino(file.clino, nrows, ncols, xmin, ymax, step) %>%
+  aggregate(12, "mean", na.rm = T)
 
 ################################
 
@@ -64,7 +60,9 @@ dy <- ymin(clino.it.ycum.agg) - ymin(eobs.it.ycum)
 # Voglio un aggiustamento di calcoli su EOBS -> CLINO - EOBS
 # Voglio che la mappa sia blu dove la matrice di correzione aggiunge pioggia -> blu valori positivi, marrone valori negativi
 pdf(paste0(path.results, "yearly.pdf"), height = 5, width = 5)
-plot(clino.it.ycum.agg - shift(eobs.it.ycum, dx, dy), col = rev(diverging_hcl(51, palette = "Vik")), range = c(-1000, 1000))
+(clino.it.ycum.agg - shift(eobs.it.ycum, dx, dy)) %>% 
+  clamp(-1000, 1000) %>% 
+  plot(col = rev(diverging_hcl(51, palette = "Vik")), range = c(-1000, 1000), colNA = "blue")
 dev.off()
 
 source("station_data.R")
