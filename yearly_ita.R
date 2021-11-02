@@ -23,7 +23,7 @@ step <-  1/120
 # Upscaling
 clino.it.ycum.agg <-
   load.clino(file.clino, nrows, ncols, xmin, ymax, step) %>%
-  aggregate(12, "mean", na.rm = T)
+  aggregate(12, mean, na.rm = T)
 
 ################################
 
@@ -109,10 +109,10 @@ plot_comparison <- function(regions,
 data.stations.eobs.it <- vect(data.stations.eobs.it.tibble, geom = c("LON", "LAT"))
 pdf(paste0(path.results, "comparison.pdf"), width = 10, height = 5, pointsize = 6)
 par(mfrow = c(1, 2))
-tryCatch(plot_comparison(c("Emilia-Romagna, Italy", "Trentino Alto Adige, Italy"),
+tryCatch(plot_comparison(c("Italy", "Emilia-Romagna, Italy", "Umbria, Italy"),
                 range = c(-300, 300),
                 geom = list(data.stations.eobs.it),
-                featuretypes = "State",
+                featuretypes = "settlement",
                 borders = T,
                 colNA = "blue"),
          error = function () {dev.off()})
