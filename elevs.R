@@ -10,8 +10,8 @@ it.extent = ext(xmin(it.elevs), xmax(it.elevs) - res(it.elevs)[1], ymin(it.elevs
 
 it.aggregated.elevs <- crop(aggregate(it.elevs, 12, na.rm = T), it.extent)
 eobs.cropped.elevs <- crop(eobs.elevs, it.extent)
-eobs.resampled.elevs <- resample(eobs.elevs, it.aggregated.elevs, method = "near")
+# eobs.resampled.elevs <- resample(eobs.elevs, it.aggregated.elevs, method = "near")
 
 plot(it.aggregated.elevs - eobs.cropped.elevs, col = brewer.pal(11, "RdBu"))
-plot(it.aggregated.elevs - eobs.resampled.elevs, col = brewer.pal(11, "RdBu"))
+# plot(it.aggregated.elevs - eobs.resampled.elevs, col = brewer.pal(11, "RdBu"))
 
