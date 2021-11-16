@@ -4,6 +4,8 @@
 .Ruserdata
 .DS_Store
 .idea/
+rasters/
 *.svg
 *.swp
 
+api_key.R
