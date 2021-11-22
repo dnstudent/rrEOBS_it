@@ -4,6 +4,8 @@ library(purrr)
 library(terra)
 
 source("load.R")
+source("station_data.R")
+source("plotting.R")
 
 path.temp <- "/Users/davidenicoli/Local_Workspace/LabClima/eobs_clino_yearly/"
 path.yearly <- "/Users/davidenicoli/Local_Workspace/Datasets/CLINO/yearly/"
@@ -66,97 +68,8 @@ correction_matrix <- (clino.it.ycum.agg - eobs.it.ycum)
 # Voglio un aggiustamento di calcoli su EOBS -> CLINO - EOBS
 # Voglio che la mappa sia blu dove la matrice di correzione aggiunge pioggia -> blu valori positivi, marrone valori negativi
 # pdf(paste0(path.results, "yearly.pdf"), height = 5, width = 5)
-correction_matrix %>%
-  terra::clamp(-1000, 1000) %>%
-  plot(col = rev(diverging_hcl(51, palette = "Vik")), range = c(-1000, 1000), colNA = "blue")
+plot.centered(correction_matrix, c(-1000, 1000))
 # dev.off()
-
-source("station_data.R")
-
-plot.regions <- function(regions,
-                         range,
-                         data = clino.it.ycum.agg,
-                         model = eobs.it.ycum,
-                         featuretypes = "settlement",
-                         col = rev(diverging_hcl(51, palette = "Vik")),
-                         geoms = NULL,
-                         borders = F,
-                         ...) {
-  if (length(featuretypes) == 1) {
-    featuretypes <- rep_len(featuretypes, length(regions))
-  }
-  for (i in 1:length(regions)) {
-    region.extent <- region.cut(regions[i],
-      format_out = "matrix",
-      featuretype = featuretypes[i]
-    )
-    if (!is.null(model)) {
-      dx <- xmin(data) - xmin(model)
-      dy <- ymin(data) - ymin(model)
-      terra::crop(data - shift(model, dx, dy), region.extent) %>%
-        terra::clamp(lower = range[1], upper = range[2], values = T) %>%
-        plot(col = col, range = range, ...)
-    } else {
-      terra::crop(data, region.extent) %>%
-        terra::clamp(lower = range[1], upper = range[2], values = T) %>%
-        plot(col = col, range = range, ...)
-    }
-    if (!is.null(geoms)) {
-      for (geom in geoms) {
-        terra::crop(geom, region.extent) %>%
-          plot(add = T)
-      }
-    }
-    if (borders) {
-      region.borders <- region.cut(regions[i],
-        featuretype = featuretypes[i],
-        format_out = "polygon",
-        crs = crs(data)
-      )
-      for (border in region.borders) {
-        plot(border, add = T)
-      }
-    }
-  }
-}
-
-plot.regions2 <- function(regions,
-                          range,
-                          data,
-                          featuretypes = "settlement",
-                          col = diverging_hcl(51, palette = "Vik"),
-                          geoms = NULL,
-                          borders = F,
-                          ...) {
-  if (length(featuretypes) == 1) {
-    featuretypes <- rep_len(featuretypes, length(regions))
-  }
-  for (i in 1:length(regions)) {
-    region.extent <- region.cut(regions[i],
-      format_out = "matrix",
-      featuretype = featuretypes[i]
-    )
-    terra::crop(data, region.extent) %>%
-      terra::clamp(lower = range[1], upper = range[2], values = T) %>%
-      plot(col = col, range = range, ...)
-    if (!is.null(geoms)) {
-      for (geom in geoms) {
-        terra::crop(geom, region.extent) %>%
-          plot(add = T)
-      }
-    }
-    if (borders) {
-      region.borders <- region.cut(regions[i],
-        featuretype = featuretypes[i],
-        format_out = "polygon",
-        crs = crs(data)
-      )
-      for (border in region.borders) {
-        plot(border, add = T)
-      }
-    }
-  }
-}
 
 stations.eobs.it <- dplyr::filter(stations.eobs, COUNTRY == "ITALY")
 stations.eobs.it.vect <- vect(stations.eobs.it, geom = c("LON", "LAT"))
@@ -180,6 +93,7 @@ correction.coarse.ext <- correction_matrix %>% (function(m) {
     ymin(m), ymax(m)
   )
 })
+
 correction.coarse.mean <- terra::crop(correction_matrix, correction.coarse.ext) %>%
   terra::aggregate(5, mean, na.rm = T)
 correction.coarse.sd <- terra::crop(correction_matrix, correction.coarse.ext) %>%
@@ -209,14 +123,29 @@ boxplot(correction.coarse.sd,
 
 plot(correction.coarse.sd)
 
+aggregate.surroundings <- function(w, na.max = NULL, ...) {
+  values <- w[-(length(w) %/% 2 + 1)]
+  if ((!is.null(na.max)) && (sum(is.na(values)) > na.max)) {
+    return(NA)
+  }
+  return(mean(values, ...))
+}
+
 for (region in c("Emilia-Romagna", "Toscana", "Calabria", "Trentino Alto Adige", "Sardegna", "Campania")) {
   borders <- region.cut(paste(region, ", Italy"), featuretype = "State")
   region.raster <- terra::crop(correction_matrix, borders)
   m <- terra::aggregate(region.raster, 5, mean, na.rm = T)
   s <- terra::aggregate(region.raster, 5, sd, na.rm = T)
   stations <- stations_op(m)
+  par(mfrow = c(2, 2))
   boxplot(m, stations, main = paste(region, "mean"), ylab = "Correction [mm]", xlab = "Station density")
   boxplot(s, stations, main = paste(region, "std"), ylab = "Correction [mm]", xlab = "Station density")
-  plot.regions2(region, c(-300, 300), m, geoms = list(stations.eobs.it.vect), borders = F)
-} 
-
+  plot.regions(region, m, range=c(-300, 300), geoms = list(stations.eobs.it.vect), borders = F)
+  region.surroundings <- focal(region.raster,
+    w = 3,
+    fun = function(w) aggregate.surroundings(w, na.max = 4, na.rm = T),
+    na.rm = T
+  )
+  plot(region.raster, region.surroundings, main = paste(region, "correlation"))
+  print(paste0(region, ": ", cor(values(region.surroundings), values(region.raster), use = "na.or.complete")[1]))
+}
