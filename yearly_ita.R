@@ -7,9 +7,6 @@ source("load.R")
 source("station_data.R")
 source("plotting.R")
 
-path.temp <- "/Users/davidenicoli/Local_Workspace/LabClima/eobs_clino_yearly/"
-path.yearly <- "/Users/davidenicoli/Local_Workspace/Datasets/CLINO/yearly/"
-path.results <- "/Users/davidenicoli/OneDrive - Università degli Studi di Milano/Uni/Workspace/LabClima/rrEOBS_it/results/"
 path.data <- "/Users/davidenicoli/OneDrive - Università degli Studi di Milano/Uni/Workspace/LabClima/rrEOBS_it/rasters/"
 
 ################################
@@ -18,17 +15,12 @@ path.data <- "/Users/davidenicoli/OneDrive - Università degli Studi di Milano/
 
 ### From provided file
 file.clino <- paste0(path.yearly, "CLINO_GRID_ITA_P_FINALE_MONTHLY_ASCII_ANNO")
-nrows <- 1320
-ncols <- 1476
-xmin <- 6.50417
-ymax <- 47.49583
-step <- 1 / 120
 
 # Upscaling
 # clino.it.ycum.agg <-
-#   load.clino(file.clino, nrows, ncols, xmin, ymax, step) %>%
+#   load.clino(file.clino) %>%
 #   terra::aggregate(12, mean, na.rm = T)
-clino.it.ycum.agg <- rast(paste0(path.data, "clino.yearly.cumulated_0.1deg.nc"))
+clino.it.ycum.agg <- load.clino(paste0(path.data, "clino.yearly.cumulated_0.1deg.nc"), cached = T)
 
 ################################
 
@@ -84,8 +76,7 @@ stations.eobs.it.vect <- vect(stations.eobs.it, geom = c("LON", "LAT"))
 # )
 # dev.off()
 
-crop_factor.x <- function(fact, r) ncol(r) %% fact
-crop_factor.y <- function(fact, r) nrow(r) %% fact
+
 
 correction.coarse.ext <- correction_matrix %>% (function(m) {
   ext(
