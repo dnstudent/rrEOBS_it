@@ -12,9 +12,9 @@ plot.correction <- function(raster,
                             col = diverging_hcl(51, palette = "Vik"),
                             colNA = "blue",
                             ...) {
-  if(is.null(range)) {
+  if (is.null(range)) {
     mm <- minmax(correction)
-    val <- if(max(mm) > abs(min(mm))) max(mm) else abs(min(mm))
+    val <- if (max(mm) > abs(min(mm))) max(mm) else abs(min(mm))
     range <- c(-val, val)
   }
   raster %>%
@@ -30,10 +30,17 @@ plot.regions <- function(regions,
                          featuretypes = "settlement",
                          geoms = NULL,
                          borders = FALSE,
+                         stations = NULL,
                          ...) {
   if (length(featuretypes) == 1) {
     featuretypes <- rep_len(featuretypes, length(regions))
   }
+  if (correction) {
+    plot.r <- plot.correction
+  } else {
+    plot.r <- plot
+  }
+
   for (i in 1:length(regions)) {
     region.extent <- region.cut(regions[i],
       format_out = "matrix",
@@ -43,10 +50,10 @@ plot.regions <- function(regions,
     if (!is.null(range)) {
       raster %>%
         terra::clamp(lower = range[1], upper = range[2], values = T) %>%
-        plot(range = range, ...)
+        plot.r(range = range, ...)
     } else {
       raster %>%
-        plot(...)
+        plot.r(...)
     }
     if (!is.null(geoms)) {
       for (geom in geoms) {
@@ -64,6 +71,11 @@ plot.regions <- function(regions,
       for (border in region.borders) {
         plot(border, add = T)
       }
+    }
+    if (!is.null(stations)) {
+      stations.eobs.vect(stations[1], stations[2]) %>%
+        terra::crop(region.extent) %>%
+        plot()
     }
   }
 }

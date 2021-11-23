@@ -24,17 +24,23 @@ region.cut <- function(place_name, format_out = "matrix", type = "lines", crs = 
 file.stations.eobs <- "/Users/davidenicoli/Local_Workspace/Datasets/EOBS/stations_info_rr_v23.1e_corrected.txt"
 file.eobs.elevs <- "/Users/davidenicoli/Local_Workspace/Datasets/EOBS/elev_ens_0.1deg_reg_v23.1e.nc"
 
-stations.eobs <- read_delim(file.stations.eobs,
-  delim = "|",
-  trim_ws = T,
-  col_names = T,
-  col_types = c("i", "c", "c", "d", "d", "d", "D", "D"),
-  lazy = F
-) %>% dplyr::filter(START <= as.Date("1961-01-01") & as.Date("1990-12-31") <= STOP)
-stations.eobs.vect <- vect(stations.eobs, geom = c("LON", "LAT"))
+stations.eobs <- function(start = "1961-01-01", stop = "1990-12-31") {
+  read_delim(file.stations.eobs,
+    delim = "|",
+    trim_ws = T,
+    col_names = T,
+    col_types = c("i", "c", "c", "d", "d", "d", "D", "D"),
+    lazy = F
+  ) %>%
+    dplyr::filter(START <= as.Date(start) & as.Date(stop) <= STOP) %>%
+    return()
+}
+stations.eobs.vect <- function(start = "1961-01-01", stop = "1990-12-31") {
+  return(vect(stations.eobs(start, stop), geom = c("LON", "LAT")))
+}
 
-stations_op <- function(data, fun = length, ...) {
-  stations <- stations.eobs %>%
+stations_op <- function(data, fun = length, start = "1961-01-01", stop = "1990-12-31", ...) {
+  stations <- stations.eobs(start, stop) %>%
     dplyr::filter(...) %>%
     terra::vect(geom = c("LON", "LAT")) %>%
     terra::rasterize(data, fun = fun)

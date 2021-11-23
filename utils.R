@@ -22,3 +22,15 @@ raster.aggregate <- function(x, fact, ..., crop = TRUE) {
   if (crop) x <- raster.trim(x, trim_size.row(x, fact), trim_size.col(x, fact))
   return(terra::aggregate(x, fact, ...))
 }
+
+aggregate.surroundings <- function(w, fun = mean, na.max = NULL, ...) {
+  values <- w[-(length(w) %/% 2 + 1)]
+  if ((!is.null(na.max)) && (sum(is.na(values)) > na.max)) {
+    return(NA)
+  }
+  return(fun(values, ...))
+}
+
+raster.aggregate.surroundings <- function(x, fun = mean, na.max = NULL, ...) {
+  return(terra::focal(x, w = 3, fun = function(w) aggregate.surroundings(w, fun, na.max, na.rm = T, ...), na.rm = T))
+}
