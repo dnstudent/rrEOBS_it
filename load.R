@@ -4,12 +4,15 @@ library(terra)
 
 path.yearly.temp <- "/Users/davidenicoli/Local_Workspace/LabClima/eobs_clino_yearly/"
 path.monthly.temp <- "/Users/davidenicoli/Local_Workspace/LabClima/eobs_clino_monthly/"
+path.arcis.temp <- "/Users/davidenicoli/Local_Workspace/LabClima/arcis_temp/"
+path.clino <- "/Users/davidenicoli/Local_Workspace/Datasets/CLINO/"
 path.yearly <- "/Users/davidenicoli/Local_Workspace/Datasets/CLINO/yearly/"
 path.monthly <- "/Users/davidenicoli/Local_Workspace/Datasets/CLINO/CLIMATOLOGIE_PIOGGE_USATE_2020_09/"
 path.results <- "/Users/davidenicoli/OneDrive - Università degli Studi di Milano/Uni/Workspace/LabClima/rrEOBS_it/results/"
 path.data <- "/Users/davidenicoli/OneDrive - Università degli Studi di Milano/Uni/Workspace/LabClima/rrEOBS_it/rasters/"
 path.eobs <- "/Users/davidenicoli/Local_Workspace/Datasets/EOBS/"
 path.gtopo <- "/Users/davidenicoli/Local_Workspace/Datasets/GTOPO30/"
+path.arcis <- "/Users/davidenicoli/Local_Workspace/Datasets/ArCIS/"
 
 file.clino.yearly <- paste0(path.yearly, "CLINO_GRID_ITA_P_FINALE_MONTHLY_ASCII_ANNO")
 file.clino.monthly <- list.files(path.monthly, full.names=TRUE)
@@ -21,10 +24,10 @@ file.eobs.elevs <- paste0(path.eobs, "elev_ens_0.1deg_reg_v23.1e.nc")
 file.gtopo <- paste0(path.gtopo, "italian_elevs_GTOPO30.grd")
 
 load.clino2 <- function(src.path, nrows, ncols,
-                       xmin = 6.50417, ymax = 47.49583, step = 1 / 120,
-                       layer.names = NULL,
-                       src.crs = "+proj=longlat +datum=WGS84",
-                       na.strings = "-9999") {
+                        xmin = 6.50417, ymax = 47.49583, step = 1 / 120,
+                        layer.names = NULL,
+                        src.crs = "+proj=longlat +datum=WGS84",
+                        na.strings = "-9999") {
   if (length(src.path) == 1) src.path <- list(src.path)
   clino.rast <-
     purrr::map(src.path, function(src.fname) {
@@ -49,7 +52,7 @@ load.clino <- function(which) {
 
 load.eobs <- function(src.path = file.eobs, dates = 4019:14975, extent = NULL) {
   if(is.null(extent)) {
-  return(src.path %>% terra::rast() %>% terra::subset(dates))
+    return(src.path %>% terra::rast() %>% terra::subset(dates))
   } else {
     return(src.path %>% terra::rast() %>% terra::subset(dates) %>% terra::crop(extent))
   }
@@ -65,4 +68,9 @@ load.elevs.eobs <- function(src.path = file.eobs.elevs, extent = NULL) {
 
 load.elevs.gtopo <- function(src.path = file.gtopo, extent = NULL) {
   return(load.elevs.eobs(src.path, extent))
+}
+
+load.arcis <- function(src.path = path.arcis, extent = NULL) {
+  files <- list.files(path.arcis, full.names = T)[1:3]
+  return(rast(files))
 }
