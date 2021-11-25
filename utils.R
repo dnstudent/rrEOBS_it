@@ -50,9 +50,19 @@ raster.extend <- function(x, y, snap = "out", ...) {
   return(terra::extend(x, extent, ...))
 }
 
+#' Transfer values of a SpatRaster to another one with a different geometry
+#'
+#' @param y SpatRaster to be resampled
+#' @param x SpatRaster with the geometry that y should be resampled to 
+#' @param ... To be implemented
+#'
+#' @return A resampled SpatRaster
+#'
+#' @examples
 raster.resample <- function(y, x, ...) {
+  y <- terra::crop(y, x)
+  x <- raster.extend(x, y, snap = "out")
   result <- rast(nrows = nrow(x), ncols = ncol(x), extent = ext(x), nlyrs = nlyr(x))
-  areay <- prod(res(y))
   stepx <- res(x) * c(1., -1.)
   stepy <- res(y) * c(1., -1.)
 
@@ -64,28 +74,34 @@ raster.resample <- function(y, x, ...) {
                                    clear = FALSE,    # If TRUE, clears the bar when finish
                                    width = 100)
   ic <- 1
+  # Il prefisso "ns" indica che si sta parlando di un angolo di cella "nord-sinistra", mentre "sd" "sud-destra"
+  # L'ultimo suffisso indica il raster, eventuali lettere in mezzo l'asse:
+  # "nsyx" sta per la coordinata y di un angolo in alto a sinistra nel raster x
+  # I due for seguenti ciclano su tutti gli angoli di cella in alto a sinistra
   for (nsyx in seq(ymax(x), ymin(x) - stepx[2], by = stepx[2])) {
     pb$tick()
     for (nsxx in seq(xmin(x), xmax(x) - stepx[1], by = stepx[1])) {
       covery <- terra::crop(y, ext(nsxx, nsxx + stepx[1], nsyx + stepx[2], nsyx), snap = "out")
       nsyvertices <- matrix(nrow = 2, ncol = prod(dim(covery)[1:2]))
       iv <- 1
-      for (nsy in c(nsyx, seq(ymax(covery) + stepy[2], ymin(covery) - stepy[2], by = stepy[2]))) {
-        for (nsx in c(nsxx, seq(xmin(covery) + stepy[1], xmax(covery) - stepy[1], by = stepy[1]))) {
-          nsyvertices[, iv] <- c(nsx, nsy)
+      # I due cicli seguenti popolano due vettori con tutti gli angoli ns e sd
+      # nella copertura della cella in esame, in modo da calcolare le aree
+      for (nsyc in c(nsyx, seq(ymax(covery) + stepy[2], ymin(covery) - stepy[2], by = stepy[2]))) {
+        for (nsxc in c(nsxx, seq(xmin(covery) + stepy[1], xmax(covery) - stepy[1], by = stepy[1]))) {
+          nsyvertices[, iv] <- c(nsxc, nsyc)
           iv <- iv + 1
         }
       }
       sdyvertices <- matrix(nrow = 2, ncol = prod(dim(covery)[1:2]))
       iv <- 1
-      for (sdy in c(seq(ymax(covery) + stepy[2], ymin(covery) - stepy[2], by = stepy[2]), nsyx + stepx[2])) {
-        for (sdx in c(seq(xmin(covery) + stepy[1], xmax(covery) - stepy[1], by = stepy[1]), nsxx + stepx[1])) {
-          sdyvertices[, iv] <- c(sdx, sdy)
+      for (sdyc in c(seq(ymax(covery) + stepy[2], ymin(covery) - stepy[2], by = stepy[2]), nsyx + stepx[2])) {
+        for (sdxc in c(seq(xmin(covery) + stepy[1], xmax(covery) - stepy[1], by = stepy[1]), nsxx + stepx[1])) {
+          sdyvertices[, iv] <- c(sdxc, sdyc)
           iv <- iv + 1
         }
       }
       areas <- abs(apply(sdyvertices - nsyvertices, 2, prod))
-      result[ic] <- values(terra::aggregate(covery, dim(covery)[1:2], w = areas / areay, na.rm = F))
+      result[ic] <- values(terra::aggregate(covery, dim(covery)[1:2], w = areas, na.rm = T))
       ic <- ic + 1
     }
   }
