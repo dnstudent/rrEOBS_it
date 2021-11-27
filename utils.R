@@ -14,13 +14,13 @@ raster.trim <- function(x, nrow, ncol, where = NULL) {
   sy <- res(x)[2]
   new.ext <- terra::ext(
     xmin(x) + (ncol %/% 2) * sx, xmax(x) - (ncol - (ncol %/% 2)) * sx,
-    ymin(x) + (nrow %/% 2) * sy, ymax(x) - (nrow - (nrow %/% 2)) * sy
+    ymin(x) + (nrow - (nrow %/% 2)) * sy, ymax(x) - (nrow %/% 2) * sy
   )
   return(terra::crop(x, new.ext))
 }
 
 raster.aggregate <- function(x, fact, ..., crop = TRUE) {
-  if (crop) x <- raster.trim(x, trim_size.row(x, fact), trim_size.col(x, fact))
+  if (crop) return(terra::aggregate(x, fact, ...) %>% raster.trim(trim_size.row(x, fact), trim_size.col(x, fact)))
   return(terra::aggregate(x, fact, ...))
 }
 
@@ -60,13 +60,13 @@ raster.extend <- function(x, y, snap = "out", ...) {
 #'
 #' @examples
 raster.resample <- function(y, x, ...) {
-  y <- terra::crop(y, x)
-  x <- raster.extend(x, y, snap = "out")
+  y <- terra::crop(y, x, snap = "out")
+  # x <- raster.extend(x, y, snap = "out")
   result <- rast(nrows = nrow(x), ncols = ncol(x), extent = ext(x), nlyrs = nlyr(x))
   stepx <- res(x) * c(1., -1.)
   stepy <- res(y) * c(1., -1.)
 
-  pb <- progress::progress_bar$new(format = "(:spin) [:bar] :percent [Elapsed time: :elapsedfull || Estimated time remaining: :eta]",
+  pb <- progress::progress_bar$new(format = "[:bar] :percent [Elapsed time: :elapsedfull || Estimated time remaining: :eta]",
                                    total = length(seq(ymax(x), ymin(x) - stepx[2], by = stepx[2])),
                                    complete = "=",   # Completion bar character
                                    incomplete = "-", # Incomplete bar character
@@ -101,7 +101,7 @@ raster.resample <- function(y, x, ...) {
         }
       }
       areas <- abs(apply(sdyvertices - nsyvertices, 2, prod))
-      result[ic] <- values(terra::aggregate(covery, dim(covery)[1:2], w = areas, na.rm = T))
+      result[ic] <- values(terra::aggregate(covery, dim(covery)[1:2], fun=weighted.mean, w = areas, na.rm = T))
       ic <- ic + 1
     }
   }
