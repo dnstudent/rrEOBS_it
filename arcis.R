@@ -3,11 +3,17 @@ library(terra)
 source("load.R")
 source("utils.R")
 
-arcis.full <- load.arcis()
-new_res <- 0.1
-new_ext <- ext(6.50417, 6.50417 + new_res*123, 47.49583-new_res*110, 47.49583)
-eobs <- rast(paste0(path.monthly.temp, "eobs_it_month.tif")) %>% crop(arcis.full, snap="out")
-# arcis <- raster.extend(arcis, eobs, filename = paste0(path.arcis.temp, "arcis_extended.tif"))
-arcis <- rast(paste0(path.arcis.temp, "arcis_extended.tif"))
+###########################
+# LOADING STUFF (from zero)
+###########################
+# arcis.full <- load.arcis()
+# eobs <- rast(paste0(path.monthly.temp, "eobs_it_month.tif")) %>% crop(arcis.full, snap="out")
+# arcis <- raster.extend(arcis, eobs, filename = paste0(path.arcis.temp, "arcis_extended.tif"), overwrite = T)
+# arcis.resampled <- raster.resample(arcis, eobs)
 
-arcis.resampled <- raster.resample(arcis, eobs)
+
+############################
+# LOADING STUFF (from cache)
+############################
+arcis.resampled <- rast(paste0(path.arcis.temp, "arcis.resampled.nc"))
+eobs <- rast(paste0(path.monthly.temp, "eobs_it_month.tif")) %>% crop(arcis.resampled)
