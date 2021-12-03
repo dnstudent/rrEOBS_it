@@ -20,7 +20,9 @@ raster.trim <- function(x, nrow, ncol, where = NULL) {
 }
 
 raster.aggregate <- function(x, fact, ..., crop = TRUE) {
-  if (crop) return(terra::aggregate(x, fact, ...) %>% raster.trim(trim_size.row(x, fact), trim_size.col(x, fact)))
+  if (crop) {
+    return(terra::aggregate(x, fact, ...) %>% raster.trim(trim_size.row(x, fact), trim_size.col(x, fact)))
+  }
   return(terra::aggregate(x, fact, ...))
 }
 
@@ -52,58 +54,103 @@ raster.extend <- function(x, y, snap = "out", ...) {
 
 #' Transfer values of a SpatRaster to another one with a different geometry
 #'
-#' @param y SpatRaster to be resampled
-#' @param x SpatRaster with the geometry that y should be resampled to 
+#' @param x SpatRaster to be resampled
+#' @param y SpatRaster with the geometry that y should be resampled to
 #' @param ... To be implemented
 #'
 #' @return A resampled SpatRaster
 #'
 #' @examples
-raster.resample <- function(y, x, ...) {
-  y <- terra::crop(y, x, snap = "out")
-  # x <- raster.extend(x, y, snap = "out")
-  result <- rast(nrows = nrow(x), ncols = ncol(x), extent = ext(x), nlyrs = nlyr(x))
-  stepx <- res(x) * c(1., -1.)
-  stepy <- res(y) * c(1., -1.)
+raster.resample <- function(x, y, ...) {
+  data <- x %>% terra::crop(y, snap = "out") %>% raster.extend(y, snap = "out")
+  result <- rast(nrows = nrow(y), ncols = ncol(y), extent = ext(y), nlyrs = nlyr(data))
+  names(result) <- names(x)
+  time(result) <- time(x)
+  units(result) <- units(x)
+  varnames(result) <- varnames(x)
+  
+  data.step <- res(data)
+  cell.step <- res(result)
 
-  pb <- progress::progress_bar$new(format = "[:bar] :percent [Elapsed time: :elapsedfull || Estimated time remaining: :eta]",
-                                   total = length(seq(ymax(x), ymin(x) - stepx[2], by = stepx[2])),
-                                   complete = "=",   # Completion bar character
-                                   incomplete = "-", # Incomplete bar character
-                                   current = ">",    # Current bar character
-                                   clear = FALSE,    # If TRUE, clears the bar when finish
-                                   width = 100)
+  pb <- progress::progress_bar$new(
+    format = "[:bar] :percent [Elapsed time: :elapsedfull || Estimated time remaining: :eta]",
+    total = nrow(result),
+    complete = "=", # Completion bar character
+    incomplete = "-", # Incomplete bar character
+    current = ">", # Current bar character
+    clear = FALSE, # If TRUE, clears the bar when finish
+    width = 100
+  )
   ic <- 1
   # Il prefisso "ns" indica che si sta parlando di un angolo di cella "nord-sinistra", mentre "sd" "sud-destra"
   # L'ultimo suffisso indica il raster, eventuali lettere in mezzo l'asse:
   # "nsyx" sta per la coordinata y di un angolo in alto a sinistra nel raster x
   # I due for seguenti ciclano su tutti gli angoli di cella in alto a sinistra
-  for (nsyx in seq(ymax(x), ymin(x) - stepx[2], by = stepx[2])) {
+  for (cell.north in seq(ymax(result), ymin(result) + cell.step[2], by = -cell.step[2])) {
     pb$tick()
-    for (nsxx in seq(xmin(x), xmax(x) - stepx[1], by = stepx[1])) {
-      covery <- terra::crop(y, ext(nsxx, nsxx + stepx[1], nsyx + stepx[2], nsyx), snap = "out")
-      nsyvertices <- matrix(nrow = 2, ncol = prod(dim(covery)[1:2]))
+    for (cell.east in seq(xmin(result), xmax(result) - cell.step[1], by = cell.step[1])) {
+      cell.extent <- ext(cell.east, cell.east + cell.step[1], cell.north - cell.step[2], cell.north)
+      cell.cover <- terra::crop(data, cell.extent, snap = "out")
+      # matrix to store all the north-east corners contributing to a resampled cell's value
+      cover.ne <- matrix(nrow = 2, ncol = nrow(cell.cover)*ncol(cell.cover))
       iv <- 1
-      # I due cicli seguenti popolano due vettori con tutti gli angoli ns e sd
+      # I due cicli seguenti popolano due vettori con tutti gli angoli ne e sw
       # nella copertura della cella in esame, in modo da calcolare le aree
-      for (nsyc in c(nsyx, seq(ymax(covery) + stepy[2], ymin(covery) - stepy[2], by = stepy[2]))) {
-        for (nsxc in c(nsxx, seq(xmin(covery) + stepy[1], xmax(covery) - stepy[1], by = stepy[1]))) {
-          nsyvertices[, iv] <- c(nsxc, nsyc)
+      for (areas.north in c(cell.north, seq(ymax(cell.cover) - data.step[2], ymin(cell.cover) + data.step[2], by = -data.step[2]))) {
+        for (areas.east in c(cell.east, seq(xmin(cell.cover) + data.step[1], xmax(cell.cover) - data.step[1], by = data.step[1]))) {
+          cover.ne[, iv] <- c(areas.east, areas.north)
           iv <- iv + 1
         }
       }
-      sdyvertices <- matrix(nrow = 2, ncol = prod(dim(covery)[1:2]))
+      cover.sw <- matrix(nrow = 2, ncol = nrow(cell.cover)*ncol(cell.cover))
       iv <- 1
-      for (sdyc in c(seq(ymax(covery) + stepy[2], ymin(covery) - stepy[2], by = stepy[2]), nsyx + stepx[2])) {
-        for (sdxc in c(seq(xmin(covery) + stepy[1], xmax(covery) - stepy[1], by = stepy[1]), nsxx + stepx[1])) {
-          sdyvertices[, iv] <- c(sdxc, sdyc)
+      for (areas.south in c(seq(ymax(cell.cover) - data.step[2], ymin(cell.cover) + data.step[2], by = -data.step[2]),
+                           cell.north - cell.step[2])) {
+        for (areas.west in c(seq(xmin(cell.cover) + data.step[1], xmax(cell.cover) - data.step[1], by = data.step[1]),
+                            cell.east + cell.step[1])) {
+          cover.sw[, iv] <- c(areas.west, areas.south)
           iv <- iv + 1
         }
       }
-      areas <- abs(apply(sdyvertices - nsyvertices, 2, prod))
-      result[ic] <- values(terra::aggregate(covery, dim(covery)[1:2], fun=weighted.mean, w = areas, na.rm = T))
+      areas <- abs(apply(cover.sw - cover.ne, 2, prod))
+      result[ic] <- values(terra::aggregate(cell.cover, c(nrow(cell.cover), ncol(cell.cover)),
+                                            fun = weighted.mean, w = areas, na.rm = T))
       ic <- ic + 1
     }
   }
   return(result)
+}
+
+date.groupby <- function(dates, by, is.date = TRUE) {
+  if (is.date) {
+    return(dates %>%
+      format(format = by) %>%
+      as.numeric())
+  } else {
+    return(dates %>%
+      substr(by[1], by[2]) %>%
+      as.numeric())
+  }
+}
+
+
+
+raster.time.reduction <- function(x, group.by, fun = "sum", ...) {
+  index <- date.groupby(time(x), paste0(group.by, collapse = ""))
+  r <- terra::tapp(x, index, fun, ...)
+  n <- names(r) %>% substr(2, 9)
+  if (length(group.by) == 1) {
+    sub("^([1-9])$", "0\\1", n)
+  }
+  if (!("%Y" %in% group.by)) {
+    n <- paste0(format(time(x)[1], format = "%Y"), n)
+  }
+  if (!("%m" %in% group.by)) {
+    n <- paste0(substr(n, 1, 4), "01", substr(n, 5, 6))
+  }
+  if (!("%d" %in% group.by)) {
+    n <- paste0(substr(n, 1, 6), "01")
+  }
+  time(r) <- as.Date(n, format = "%Y%m%d")
+  return(r)
 }
