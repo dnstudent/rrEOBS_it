@@ -6,32 +6,31 @@ library(terra)
 source("load.R")
 source("station_data.R")
 source("plotting.R")
-
-path.data <- "/Users/davidenicoli/OneDrive - Università degli Studi di Milano/Uni/Workspace/LabClima/rrEOBS_it/rasters/"
+source("utils.R")
 
 ################################
 ## LOADING high-res italian data
 ################################
 
-### From provided file
-file.clino <- paste0(path.yearly, "CLINO_GRID_ITA_P_FINALE_MONTHLY_ASCII_ANNO")
 
 # Upscaling
-# clino.it.ycum.agg <-
-#   load.clino(file.clino) %>%
-#   terra::aggregate(12, mean, na.rm = T)
-clino.it.ycum.agg <- load.clino(paste0(path.data, "clino.yearly.cumulated_0.1deg.nc"), cached = T)
+clino <-
+  load.clino("yearly") %>%
+  raster.aggregate(12, mean, na.rm = T)
+names(clino) <- "1961-1991"
+varnames(clino) <- "rr"
+units(clino) <- "mm"
 
 ################################
 
 ################################
 ## LOADING E-OBS
 ################################
-eobs.file <- "/Users/davidenicoli/Local_Workspace/Datasets/EOBS/rr_ens_mean_0.1deg_reg_v23.1e.nc"
+# eobs.file <- "/Users/davidenicoli/Local_Workspace/Datasets/EOBS/rr_ens_mean_0.1deg_reg_v23.1e.nc"
 # The real deal
 # subset seleziona le date di interesse: 01-01-1961 -> 31-12-1990
-eobs.raster <- terra::rast(eobs.file)
-eobs.subset <- terra::subset(eobs.raster, 4019:14975)
+# eobs.raster <- terra::rast(eobs.file)
+# eobs.subset <- terra::subset(eobs.raster, 4019:14975)
 
 # Original code: uncomment if you never run it before
 # eobs.it <- crop(eobs.subset, clino.it.ycum.agg)
@@ -42,9 +41,10 @@ eobs.subset <- terra::subset(eobs.raster, 4019:14975)
 # eobs.subset.resampled <- resample(eobs.subset, it.monthly.aggregated, method = "near", filename = paste0(path.temp, "temp_resamp_month.grd"), overwrite = T)
 
 # Using cached raster:
-eobs.it <- terra::rast(paste0(path.temp, "temp_crop_year.tif"))
-units(eobs.it) <- "mm"
-time(eobs.it) <- as.Date(names(eobs.it))
+# eobs <- terra::rast(paste0(path.yearly.temp, "temp_crop_year.tif"))
+# units(eobs) <- "mm"
+# time(eobs) <- as.Date(names(eobs))
+# varnames(eobs) <- "rr"
 # eobs.subset.resampled <- rast(paste0(path.temp, "temp_resamp_month.grd"))
 
 # indici per raggruppare gli anni
@@ -54,17 +54,15 @@ time(eobs.it) <- as.Date(names(eobs.it))
 # dx <- xmin(clino.it.ycum.agg) - xmin(eobs.it.ycum)
 # dy <- ymin(clino.it.ycum.agg) - ymin(eobs.it.ycum)
 
-eobs.it.ycum <- rast(paste0(path.data, "eobs.yearly.cumulated_0.1deg.nc"))
-correction_matrix <- (clino.it.ycum.agg - eobs.it.ycum)
+eobs <- rast(paste0(path.data, "eobs.yearly.cumulated_0.1deg.nc"))
+correction_matrix <- clino - eobs
 
 # Voglio un aggiustamento di calcoli su EOBS -> CLINO - EOBS
 # Voglio che la mappa sia blu dove la matrice di correzione aggiunge pioggia -> blu valori positivi, marrone valori negativi
 # pdf(paste0(path.results, "yearly.pdf"), height = 5, width = 5)
-plot.centered(correction_matrix, c(-1000, 1000))
+plot.regions("Italy", correction_matrix, 500, correction = T )
 # dev.off()
 
-stations.eobs.it <- dplyr::filter(stations.eobs, COUNTRY == "ITALY")
-stations.eobs.it.vect <- vect(stations.eobs.it, geom = c("LON", "LAT"))
 # pdf(paste0(path.results, "comparison.pdf"), width = 10, height = 5, pointsize = 6)
 # par(mfrow = c(1, 2))
 # plot.regions(c("Valle d'Aosta, Italy", "Trentino, Italy"),
@@ -78,19 +76,21 @@ stations.eobs.it.vect <- vect(stations.eobs.it, geom = c("LON", "LAT"))
 
 
 
-correction.coarse.ext <- correction_matrix %>% (function(m) {
-  ext(
-    xmin(m), xmax(m) - crop_factor.x(5, m) * res(m)[1],
-    ymin(m), ymax(m)
-  )
-})
+# correction.coarse.ext <- correction_matrix %>% (function(m) {
+#   ext(
+#     xmin(m), xmax(m) - crop_factor.x(5, m) * res(m)[1],
+#     ymin(m), ymax(m)
+#   )
+# })
+# 
+# correction.coarse.mean <- terra::crop(correction_matrix, correction.coarse.ext) %>%
+#   terra::aggregate(5, mean, na.rm = T)
+# correction.coarse.sd <- terra::crop(correction_matrix, correction.coarse.ext) %>%
+#   terra::aggregate(5, sd, na.rm = T)
 
-correction.coarse.mean <- terra::crop(correction_matrix, correction.coarse.ext) %>%
-  terra::aggregate(5, mean, na.rm = T)
-correction.coarse.sd <- terra::crop(correction_matrix, correction.coarse.ext) %>%
-  terra::aggregate(5, sd, na.rm = T)
+correction.coarse.mean <- raster.aggregate(correction_matrix, 5, na.rm = T)
 
-stations.it.density <- stations_op(correction.coarse.mean, length, COUNTRY == "ITALY")
+stations.it.density <- stations_op(correction.coarse.mean, length, na.fill = 0, COUNTRY == "ITALY")
 stations.it.density.agg <- terra::classify(stations.it.density,
   c(0, 4, 10, terra::minmax(stations.it.density)[2]),
   # 27,

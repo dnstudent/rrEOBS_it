@@ -1,6 +1,7 @@
 library(progress)
 library(terra)
 
+source("geo_data.R")
 
 trim_size.col <- function(x, fact) {
   return(ncol(x) %% fact)
@@ -21,7 +22,7 @@ raster.trim <- function(x, nrow, ncol, where = NULL) {
 
 raster.aggregate <- function(x, fact, ..., crop = TRUE) {
   if (crop) {
-    return(terra::aggregate(x, fact, ...) %>% raster.trim(trim_size.row(x, fact), trim_size.col(x, fact)))
+    return(raster.trim(x, trim_size.row(x, fact), trim_size.col(x, fact)) %>% terra::aggregate(fact, ...))
   }
   return(terra::aggregate(x, fact, ...))
 }
@@ -135,9 +136,13 @@ date.groupby <- function(dates, by, is.date = TRUE) {
 
 
 
-raster.time.reduction <- function(x, group.by, fun = "sum", ...) {
+raster.time.reduction <- function(x, group.by, fun = "sum", ..., keepsize = FALSE) {
   index <- date.groupby(time(x), paste0(group.by, collapse = ""))
   r <- terra::tapp(x, index, fun, ...)
+  if (keepsize) {
+    
+  }
+  
   n <- names(r) %>% substr(2, 9)
   if (length(group.by) == 1) {
     sub("^([1-9])$", "0\\1", n)
@@ -154,3 +159,5 @@ raster.time.reduction <- function(x, group.by, fun = "sum", ...) {
   time(r) <- as.Date(n, format = "%Y%m%d")
   return(r)
 }
+
+
