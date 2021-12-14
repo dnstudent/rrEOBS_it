@@ -10,7 +10,7 @@ cmap.correction <- diverging_hcl(51, palette = "Blue-Red 3")
 plot.correction <- function(x,
                             range = NULL,
                             col = cmap.correction,
-                            colNA = "blue",
+                            colNA = "green",
                             ...) {
   if (is.null(range)) {
     mm <- minmax(x)
@@ -25,8 +25,8 @@ plot.correction <- function(x,
 }
 
 
-plot.raster <- function(x, correction = FALSE, ..., add = FALSE) {
-  plot.r <- if (correction) {
+plot.raster <- function(x, is.correction = FALSE, ..., add = FALSE) {
+  plot.r <- if (is.correction) {
     plot.correction
   } else {
     terra::plot
@@ -50,73 +50,34 @@ plot.stations <- function(x, ..., start = "1961-01-01", stop = "1990-12-31", add
 
 plot.borders <- function(x, region, featuretype = "State", add = TRUE) {
   borders <- region.borders(region, crs(x), featuretype = featuretype) %>%
-    plot.raster(correction = F, add = add)
+    plot.raster(is.correction = F, add = add)
   return(x)
 }
 
-plot.regions2 <- function(regions,
-                          x,
-                          correction = FALSE,
-                          range = NULL,
-                          featuretypes = "State",
-                          stations = FALSE,
-                          borders = FALSE,
-                          geoms = NULL,
-                          ...) {
-  if (length(featuretypes) == 1) {
-    featuretypes <- rep_len(featuretypes, length(regions))
+plot.region <- function(x,
+                        region = NULL,
+                        featuretype = "State",
+                        is.correction = FALSE,
+                        stations = FALSE,
+                        start = "1961-01-01",
+                        stop = "1990-12-31",
+                        borders = FALSE,
+                        station_args = c(), # Yet to be implemented
+                        ...)
+{
+  if (!is.null(region)) {
+    x <- region.crop(x, region, featuretype)
   }
-  if (correction) {
-    plot.r <- plot.correction
-  } else {
-    plot.r <- plot
-  }
-
-  for (i in 1:length(regions)) {
-    region.extent <- region.bbox(regions[i],
-      format_out = "matrix",
-      featuretype = featuretypes[i]
-    )
-    x <- x %>% terra::crop(region.extent, snap = "out")
-    if (!is.null(range)) {
-      if (length(range) == 1) {
-        range <- c(-range, range)
-      }
-      x %>%
-        terra::clamp(lower = range[1], upper = range[2], values = T) %>%
-        plot.r(range = range, ...)
-    } else {
-      plot.r(x, ...)
-    }
-    if (stations) {
-      for (geom in geoms) {
-        geom %>%
-          terra::crop(region.extent) %>%
-          plot(add = T)
-      }
-    }
-    if (borders) {
-      region.borders <- region.bbox(regions[i],
-        featuretype = featuretypes[i],
-        format_out = "polygon",
-        crs = crs(x)
-      )
-      for (border in region.borders) {
-        plot(border, add = T)
-      }
-    }
-    if (!is.null(stations)) {
-      stations.eobs.vect(stations[1], stations[2]) %>%
-        terra::crop(region.extent) %>%
-        plot()
-    }
-  }
+  plot.raster(x, is.correction = is.correction, ..., add = F)
+  if(stations) plot.stations(x, start = start, stop = stop, add = TRUE)
+  if(borders) plot.borders(x, region, featuretype, add = TRUE)
+  return(x)
 }
 
 plot.regions <- function(x,
                          regions,
                          featuretypes = "State",
-                         correction = FALSE,
+                         is.correction = FALSE,
                          stations = FALSE,
                          start = "1961-01-01",
                          stop = "1990-12-31",
@@ -127,9 +88,6 @@ plot.regions <- function(x,
     featuretypes <- rep_len(featuretypes, length(regions))
   }
   for (i in 1:length(regions)) {
-    r <- region.crop(x, regions[i], featuretypes[i]) %>%
-      plot.raster(correction, ..., add = F)
-    if(stations) plot.stations(r, start = start, stop = stop, add = TRUE)
-    if(borders) plot.borders(r, regions[i], featuretypes[i], add = TRUE)
+    plot.region(x, regions[i], featuretypes[i], is.correction, stations, start, stop, borders, station_args, ...)
   }
 }

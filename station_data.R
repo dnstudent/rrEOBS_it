@@ -21,7 +21,8 @@ stations.eobs <- function(x, ..., start = "1961-01-01", stop = "1990-12-31", ret
     dplyr::filter(
       START <= as.Date(start), as.Date(stop) <= STOP,
       xmin(x) <= LON, LON <= xmax(x),
-      ymin(x) <= LAT, LAT <= ymax(x), ...
+      ymin(x) <= LAT, LAT <= ymax(x),
+      ...
     )
   if (return.vect) {
     return(terra::vect(s, geom = c("LON", "LAT"), crs = crs(x)))

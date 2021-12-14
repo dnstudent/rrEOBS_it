@@ -11,9 +11,10 @@ source("utils.R")
 # it.elevs <- rast(file.it.elevs)
 
 clino.elevs <- load.elevs.gtopo()
-eobs.elevs <- load.elevs.eobs(extent = clino.elevs)
-
 clino.elevs.aggregated <- raster.aggregate(clino.elevs, 12, na.rm = T)
+
+eobs.elevs <- load.elevs.eobs(extent = clino.elevs.aggregated)
+
 ext(clino.elevs.aggregated) <- ext(eobs.elevs)
 
 # it.extent = ext(xmin(clino.elevs), xmax(clino.elevs) - res(clino.elevs)[1], ymin(clino.elevs), ymax(clino.elevs) - res(clino.elevs)[2])

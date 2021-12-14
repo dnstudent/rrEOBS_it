@@ -50,24 +50,24 @@ load.clino <- function(which) {
   ) %>% return()
 }
 
-load.eobs <- function(src.path = file.eobs, dates = 4019:14975, extent = NULL) {
+load.eobs <- function(src.path = file.eobs, dates = 4019:14975, extent = NULL, ...) {
   if(is.null(extent)) {
     return(src.path %>% terra::rast() %>% terra::subset(dates))
   } else {
-    return(src.path %>% terra::rast() %>% terra::subset(dates) %>% terra::crop(extent))
+    return(src.path %>% terra::rast() %>% terra::subset(dates) %>% terra::crop(extent, ...))
   }
 }
 
-load.elevs.eobs <- function(src.path = file.eobs.elevs, extent = NULL) {
+load.elevs.eobs <- function(src.path = file.eobs.elevs, extent = NULL, ...) {
   if(is.null(extent)) {
     return(src.path %>% terra::rast())
   } else {
-    return(src.path %>% terra::rast() %>% terra::crop(extent))
+    return(src.path %>% terra::rast() %>% terra::crop(extent, ...))
   }
 }
 
-load.elevs.gtopo <- function(src.path = file.gtopo, extent = NULL) {
-  return(load.elevs.eobs(src.path, extent))
+load.elevs.gtopo <- function(src.path = file.gtopo, extent = NULL, ...) {
+  return(load.elevs.eobs(src.path, extent, ...))
 }
 
 load.arcis <- function(src.path = path.arcis, extent = NULL) {

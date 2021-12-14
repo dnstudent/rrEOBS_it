@@ -8,14 +8,13 @@ source("plotting.R")
 source("station_data.R")
 source("utils.R")
 
-clino.monthly <- load.clino("monthly")
+clino <- load.clino("monthly")
 
-clino.seasonal <- terra::tapp(clino.monthly,
+clino <- terra::tapp(clino,
   index = c(rep(0, 3), rep(1, 6), rep(0, 3)),
-  fun = sum, na.rm = T
-) %>%
+  fun = sum, na.rm = T) %>%
   raster.aggregate(12, mean, na.rm = T, crop = T)
-names(clino.seasonal) <- c("Cold", "Warm")
+names(clino) <- c("Cold", "Warm")
 
 eobs <- rast(paste0(path.monthly.temp, "eobs_it_month.tif")) %>%
   terra::subset(seq(as.Date("1961-04-01"), as.Date("1990-09-30"), by = "day") %>%
@@ -23,22 +22,25 @@ eobs <- rast(paste0(path.monthly.temp, "eobs_it_month.tif")) %>%
 
 index.y <- (substr(names(eobs), 1, 4) %>% as.numeric() - 1961) * 2
 index.s <- (substr(names(eobs), 6, 7) %>% as.numeric() + 2) %/% 6
-eobs.seasonal <- eobs %>%
+eobs <- eobs %>%
   terra::tapp(index = index.y + index.s, fun = sum, na.rm = T) %>%
   terra::tapp(index = rep(c(1, 0)), fun = mean, na.rm = T)
-names(eobs.seasonal) <- c("Warm", "Cold")
+names(eobs) <- c("Warm", "Cold")
 
-ext(clino.seasonal) <- ext(eobs.seasonal)
+ext(clino) <- ext(eobs)
 
-correction <- clino.seasonal - eobs.seasonal
+correction <- clino - eobs
 
-pdf(paste0(path.results, "seasonal.pdf"), width = 6, height = 3, pointsize = 6)
-plot.correction(correction)
+pdf(paste0(path.results, "seasonal.pdf"),
+    height = ymax(correction) - ymin(correction),
+    width = 2*(xmax(correction) - xmin(correction) - 1.2),
+    pointsize = 20)
+plot.raster(correction, correction = T, range = 300, colNA = "green", mar = c(3.1, 3.1, 2.1, 5.1))
 dev.off()
 
 correction.surroundings <- correction %>%
   terra::sapp(raster.aggregate.surroundings, na.max = 4, na.rm = T)
-elevs.complexity <- load.elevs.gtopo(extent = eobs.seasonal) %>%
+elevs.complexity <- load.elevs.gtopo(extent = eobs) %>%
   raster.aggregate(12, fun = sd, na.rm = T)
 names(elevs.complexity) <- "Elevation complexity"
 

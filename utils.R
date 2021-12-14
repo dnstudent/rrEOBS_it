@@ -56,19 +56,19 @@ raster.extend <- function(x, y, snap = "out", ...) {
 #' Transfer values of a SpatRaster to another one with a different geometry
 #'
 #' @param x SpatRaster to be resampled
-#' @param y SpatRaster with the geometry that y should be resampled to
+#' @param y SpatRaster with the geometry that x should be resampled to
 #' @param ... To be implemented
 #'
 #' @return A resampled SpatRaster
 #'
 #' @examples
-raster.resample <- function(x, y, ...) {
+raster.resample <- function(x, y, fun = terra::weighted.mean, ...) {
   data <- x %>% terra::crop(y, snap = "out") %>% raster.extend(y, snap = "out")
   result <- rast(nrows = nrow(y), ncols = ncol(y), extent = ext(y), nlyrs = nlyr(data))
   names(result) <- names(x)
   time(result) <- time(x)
   units(result) <- units(x)
-  varnames(result) <- varnames(x)
+  varnames(result) <- varnames(x)[1]
   
   data.step <- res(data)
   cell.step <- res(result)
@@ -83,10 +83,10 @@ raster.resample <- function(x, y, ...) {
     width = 100
   )
   ic <- 1
-  # Il prefisso "ns" indica che si sta parlando di un angolo di cella "nord-sinistra", mentre "sd" "sud-destra"
-  # L'ultimo suffisso indica il raster, eventuali lettere in mezzo l'asse:
-  # "nsyx" sta per la coordinata y di un angolo in alto a sinistra nel raster x
-  # I due for seguenti ciclano su tutti gli angoli di cella in alto a sinistra
+  # cell è una cella del raster risultante: ha le proprietà delle celle di y (risoluzione, extent)
+  # invece che "east" si legga "west", ho fatto confusione
+  # cell.cover è la "copertura" della cella, ovvero l'insieme più piccolo di celle di x che ricoprono la cella.
+  #   Queste forniscono i dati da utilizzare per riempire, in maniera pesata, la cella del raster resampled
   for (cell.north in seq(ymax(result), ymin(result) + cell.step[2], by = -cell.step[2])) {
     pb$tick()
     for (cell.east in seq(xmin(result), xmax(result) - cell.step[1], by = cell.step[1])) {
@@ -115,7 +115,7 @@ raster.resample <- function(x, y, ...) {
       }
       areas <- abs(apply(cover.sw - cover.ne, 2, prod))
       result[ic] <- values(terra::aggregate(cell.cover, c(nrow(cell.cover), ncol(cell.cover)),
-                                            fun = weighted.mean, w = areas, na.rm = T))
+                                            fun = fun, w = areas, ...))
       ic <- ic + 1
     }
   }
@@ -136,12 +136,9 @@ date.groupby <- function(dates, by, is.date = TRUE) {
 
 
 
-raster.time.reduction <- function(x, group.by, fun = "sum", ..., keepsize = FALSE) {
-  index <- date.groupby(time(x), paste0(group.by, collapse = ""))
+raster.time.reduction <- function(x, group.by, fun = "sum", ...) {
+  index <- date.groupby(time(x), paste0(group.by, collapse = ""), is.date = T)
   r <- terra::tapp(x, index, fun, ...)
-  if (keepsize) {
-    
-  }
   
   n <- names(r) %>% substr(2, 9)
   if (length(group.by) == 1) {
@@ -160,4 +157,6 @@ raster.time.reduction <- function(x, group.by, fun = "sum", ..., keepsize = FALS
   return(r)
 }
 
-
+raster.offset <- function(x, y) {
+  return(c(xmin(x) - xmin(y), ))
+}
