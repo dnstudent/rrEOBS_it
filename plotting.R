@@ -49,7 +49,7 @@ plot.stations <- function(x, ..., start = "1961-01-01", stop = "1990-12-31", add
 }
 
 plot.borders <- function(x, region, featuretype = "State", add = TRUE) {
-  borders <- region.borders(region, crs(x), featuretype = featuretype) %>%
+  borders <- vect(region.borders(region, featuretype = featuretype)) %>%
     plot.raster(is.correction = F, add = add)
   return(x)
 }

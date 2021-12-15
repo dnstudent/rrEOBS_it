@@ -1,6 +1,8 @@
 library(terra)
 
+source("geo_data.R")
 source("load.R")
+source("plotting.R")
 source("utils.R")
 
 ###########################
@@ -22,21 +24,25 @@ eobs <- rast(paste0(path.yearly.temp, "eobs.it.nc")) %>% crop(arcis)
 index <- as.numeric(format(time(eobs), format = "%m"))
 runs <- rle(index)$lengths
 
-for (region in c("Trentino Alto Adige")) {
-  arcis.means <- arcis %>%
-    region.crop(region) %>% 
-    raster.time.reduction(c("%Y", "%m"), "sum", na.rm = T) %>% # cumulation on days
+# Expects a raster with time attribute, starting from 01-01 and ending with 12-31
+# Not a generic function! Beware
+anomalies <- function(x) {
+  means <- x %>%
+    raster.time.reduction(c("%Y", "%m"), "mean", na.rm = T) %>% # cumulation on days
     raster.time.reduction(c("%m"), "mean", na.rm = T) %>% # monthly means
-    rep(30) %>% rep(runs) # disaggregate: replicate monthly means for each day
-  arcis.anomalies <- arcis / arcis.means
-  names(arcis.anomalies) <- time(arcis.anomalies)
-  
-  eobs.means <- eobs %>%
-    region.crop(region) %>% 
-    raster.time.reduction(c("%Y", "%m"), "sum", na.rm = T) %>% # cumulation on days
-    raster.time.reduction(c("%m"), "mean", na.rm = T) %>% # monthly means
-    rep(30) %>% rep(runs)
-  eobs.anomalies <- eobs / eobs.means
+    rep(length(runs) / 12) %>% rep(runs) # disaggregate: replicate monthly means for each day
+  return(x / means)
+}
+
+arcis.anomalies <- anomalies(arcis)
+eobs.anomalies <- anomalies(eobs)
+
+
+for (region in c("Trentino-Alto Adige")) {
+  arcis.regional <- region.crop(arcis.anomalies, paste0(region, ", Italia"))
+  eobs.regional <- region.crop(eobs.anomalies, paste0(region, ", Italia"))
+  plot.raster(arcis.regional, main = paste("Arcis", region), maxnl = 2)
+  plot.raster(eobs.regional, main = paste("EOBS", region), maxnl = 2)
 }
 
 

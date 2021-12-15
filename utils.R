@@ -134,8 +134,6 @@ date.groupby <- function(dates, by, is.date = TRUE) {
   }
 }
 
-
-
 raster.time.reduction <- function(x, group.by, fun = "sum", ...) {
   index <- date.groupby(time(x), paste0(group.by, collapse = ""), is.date = T)
   r <- terra::tapp(x, index, fun, ...)
@@ -157,6 +155,3 @@ raster.time.reduction <- function(x, group.by, fun = "sum", ...) {
   return(r)
 }
 
-raster.offset <- function(x, y) {
-  return(c(xmin(x) - xmin(y), ))
-}
