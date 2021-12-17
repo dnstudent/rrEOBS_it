@@ -16,7 +16,7 @@ stations <- readr::read_delim(file.stations.eobs,
   lazy = F
 )
 
-stations.eobs <- function(x, ..., start = "1961-01-01", stop = "1990-12-31", return.vect = TRUE) {
+stations.eobs <- function(x, start, stop, ..., return.vect = TRUE) {
   s <- stations %>%
     dplyr::filter(
       START <= as.Date(start), as.Date(stop) <= STOP,
@@ -30,7 +30,7 @@ stations.eobs <- function(x, ..., start = "1961-01-01", stop = "1990-12-31", ret
   return(s)
 }
 
-stations_op <- function(x, ..., fun = length, na.fill = NULL, start = "1961-01-01", stop = "1990-12-31") {
+stations_op <- function(x, start, stop, ..., fun = length, na.fill = NULL) {
   stations <- stations.eobs(x, ..., start = start, stop = stop, return.vect = T) %>%
     terra::rasterize(x, fun = fun)
   if (!is.null(na.fill)) {

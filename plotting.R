@@ -29,7 +29,7 @@ plot.raster <- function(x, is.correction = FALSE, ..., add = FALSE) {
   plot.r <- if (is.correction) {
     plot.correction
   } else {
-    terra::plot
+    function(...) {print("Starting terra::plot"); terra::plot(...); print("Done terra::plot")}
   }
   if (class(x) == "list") {
     plot.r(x[[1]], ..., add = add)
@@ -42,15 +42,17 @@ plot.raster <- function(x, is.correction = FALSE, ..., add = FALSE) {
   return(x)
 }
 
-plot.stations <- function(x, ..., start = "1961-01-01", stop = "1990-12-31", add = TRUE) {
-  stations.eobs(x, ..., start = start, stop = stop, return.vect = TRUE) %>%
+plot.stations <- function(x, start, stop, ..., add = TRUE) {
+  stations.eobs(x, start = start, stop = stop, ..., return.vect = TRUE) %>%
     terra::plot(add = add)
   return(x)
 }
 
-plot.borders <- function(x, region, featuretype = "State", add = TRUE) {
-  borders <- vect(region.borders(region, featuretype = featuretype)) %>%
-    plot.raster(is.correction = F, add = add)
+plot.borders <- function(x, region, featuretype = "State", add = TRUE, ...) {
+  print("Starting plot.borders")
+  vect(region.borders(region, featuretype = featuretype, ...)) %>%
+    terra::plot(add = add)
+  print("Done plot.borders")
   return(x)
 }
 
@@ -59,8 +61,8 @@ plot.region <- function(x,
                         featuretype = "State",
                         is.correction = FALSE,
                         stations = FALSE,
-                        start = "1961-01-01",
-                        stop = "1990-12-31",
+                        start = NULL,
+                        stop = NULL,
                         borders = FALSE,
                         station_args = c(), # Yet to be implemented
                         ...)
@@ -79,8 +81,8 @@ plot.regions <- function(x,
                          featuretypes = "State",
                          is.correction = FALSE,
                          stations = FALSE,
-                         start = "1961-01-01",
-                         stop = "1990-12-31",
+                         start = NULL,
+                         stop = NULL,
                          borders = FALSE,
                          station_args = c(), # Yet to be implemented
                          ...) {

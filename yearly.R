@@ -8,6 +8,9 @@ source("station_data.R")
 source("plotting.R")
 source("utils.R")
 
+from <- "1961-01-01"
+to <- "1990-12-31"
+
 ################################
 ## LOADING high-res italian data
 ################################
@@ -17,7 +20,7 @@ source("utils.R")
 clino <-
   load.clino("yearly") %>%
   raster.aggregate(12, mean, na.rm = T)
-names(clino) <- "1961-1991"
+names(clino) <- "1961-1990"
 varnames(clino) <- "rr"
 units(clino) <- "mm"
 
@@ -29,8 +32,7 @@ units(clino) <- "mm"
 # eobs.file <- "/Users/davidenicoli/Local_Workspace/Datasets/EOBS/rr_ens_mean_0.1deg_reg_v23.1e.nc"
 # The real deal
 # subset seleziona le date di interesse: 01-01-1961 -> 31-12-1990
-eobs <- load.eobs(dates = 4019:14975, extent = clino)
-clino.shift <- 
+eobs <- load.eobs(from, to, extent = clino)
 ext(clino) <- ext(eobs)
 
 # indici per raggruppare gli anni
@@ -65,6 +67,8 @@ plot.regions(correction_matrix,
   range = 300,
   featuretypes = "State",
   stations = T,
+  start = from,
+  stop = to,
   borders = T
 )
 dev.off()
@@ -74,7 +78,7 @@ correction.coarse.mean <- raster.aggregate(correction_matrix, 5, na.rm = T)
 # stations.density <- stations_op(correction.coarse.mean,
 #                                 fun = function(x) x %>% length %>% terra::classify(c(0, 4, 10, Inf)),
 #                                 na.fill = 0)
-stations.density <- stations_op(correction.coarse.mean, fun = length, na.fill = 0)
+stations.density <- stations_op(correction.coarse.mean, from, to, fun = length, na.fill = 0)
 
 stations.density.agg <- terra::classify(stations.density,
   c(0, 2, 10, terra::minmax(stations.density)[2]),

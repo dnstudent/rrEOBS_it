@@ -7,6 +7,9 @@ source("load.R")
 source("plotting.R")
 source("utils.R")
 
+from <- "1961-01-01"
+to <- "1990-12-31"
+
 ################################
 ## LOADING high-res italian data
 ################################
@@ -19,7 +22,7 @@ clino <-
 ## LOADING E-OBS
 ################
 # The real deal
-eobs <- load.eobs(dates = 4019:14975, extent = clino)
+eobs <- load.eobs(from, to, extent = clino)
 ext(clino) <- ext(eobs)
 
 eobs <- eobs %>%

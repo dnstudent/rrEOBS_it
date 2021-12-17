@@ -28,13 +28,13 @@ load.clino2 <- function(src.path, nrows, ncols,
                         xmin = 6.50417, ymax = 47.49583, step = 1 / 120,
                         layer.names = NULL,
                         src.crs = "+proj=longlat +datum=WGS84",
-                        na.strings = "-9999") {
+                        na.strings = "-9999", ...) {
   if (length(src.path) == 1) src.path <- list(src.path)
   clino.rast <-
     purrr::map(src.path, function(src.fname) {
       scan(src.fname, na.strings = na.strings) %>%
         matrix(ncol = ncols, byrow = T) %>%
-        terra::rast()
+        terra::rast(...)
     }) %>%
     terra::rast()
   crs(clino.rast) <- src.crs
@@ -44,34 +44,38 @@ load.clino2 <- function(src.path, nrows, ncols,
   return(clino.rast)
 }
 
-load.clino <- function(which) {
+load.clino <- function(which, ...) {
   switch(which,
-         "yearly" = load.clino2(file.clino.yearly, 1320, 1476),
-         "monthly" = load.clino2(file.clino.monthly, 1321, 1476, layer.names = month.name)
+         "yearly" = load.clino2(file.clino.yearly, 1320, 1476, ...),
+         "monthly" = load.clino2(file.clino.monthly, 1321, 1476, layer.names = month.name, ...)
   ) %>% return()
 }
 
-load.eobs <- function(src.path = file.eobs, dates = 4019:14975, extent = NULL, ...) {
+load.eobs <- function(from, to, src.path = file.eobs, extent = NULL, snap = "near", ...) {
+  from <- (as.Date(from) - as.Date("1950-01-01"))[[1]] + 1
+  to <- (as.Date(to) - as.Date("1950-01-01"))[[1]] + 1
   if(is.null(extent)) {
-    return(src.path %>% terra::rast() %>% terra::subset(dates))
+    return(src.path %>% terra::rast(...) %>% terra::subset(from:to))
   } else {
-    return(src.path %>% terra::rast() %>% terra::subset(dates) %>% terra::crop(extent, ...))
+    return(src.path %>% terra::rast(...) %>% terra::subset(from:to) %>% terra::crop(extent, snap = snap))
   }
 }
 
-load.elevs.eobs <- function(src.path = file.eobs.elevs, extent = NULL, ...) {
+load.elevs.eobs <- function(src.path = file.eobs.elevs, extent = NULL, snap = "near", ...) {
   if(is.null(extent)) {
-    return(src.path %>% terra::rast())
+    return(src.path %>% terra::rast(...))
   } else {
-    return(src.path %>% terra::rast() %>% terra::crop(extent, ...))
+    return(src.path %>% terra::rast(...) %>% terra::crop(extent, snap = snap))
   }
 }
 
-load.elevs.gtopo <- function(src.path = file.gtopo, extent = NULL, ...) {
-  return(load.elevs.eobs(src.path, extent, ...))
+load.elevs.gtopo <- function(src.path = file.gtopo, extent = NULL, snap = "near", ...) {
+  return(load.elevs.eobs(src.path, extent, snap, ...))
 }
 
-load.arcis <- function(src.path = path.arcis, extent = NULL) {
-  files <- list.files(path.arcis, full.names = T)[1:3]
-  return(rast(files))
+load.arcis <- function(from, to, src.path = path.arcis, extent = NULL, ...) {
+  from <- (as.Date(from) - as.Date("1961-01-01"))[[1]] + 1
+  to <- (as.Date(to) - as.Date("1961-01-01"))[[1]] + 1
+  files <- list.files(path.arcis, full.names = T)
+  return(rast(files, ...) %>% terra::subset(from:to))
 }

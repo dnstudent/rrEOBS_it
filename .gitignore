@@ -7,5 +7,7 @@
 rasters/
 *.svg
 *.swp
+*.nc
+*.tif
 
 api_key.R

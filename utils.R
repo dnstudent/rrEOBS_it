@@ -107,6 +107,8 @@ raster.resample <- function(x, y, fun = terra::weighted.mean, ...) {
       iv <- 1
       for (areas.south in c(seq(ymax(cell.cover) - data.step[2], ymin(cell.cover) + data.step[2], by = -data.step[2]),
                            cell.north - cell.step[2])) {
+        # print(xmin(cell.cover) + data.step[1])
+        # print(xmax(cell.cover) - data.step[1])
         for (areas.west in c(seq(xmin(cell.cover) + data.step[1], xmax(cell.cover) - data.step[1], by = data.step[1]),
                             cell.east + cell.step[1])) {
           cover.sw[, iv] <- c(areas.west, areas.south)
