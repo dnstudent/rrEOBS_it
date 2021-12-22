@@ -25,34 +25,34 @@ plot.correction <- function(x,
 }
 
 
-plot.raster <- function(x, is.correction = FALSE, ..., add = FALSE) {
+plot.raster <- function(x, is.correction = FALSE, add = FALSE, ...) {
   plot.r <- if (is.correction) {
     plot.correction
   } else {
-    function(...) {print("Starting terra::plot"); terra::plot(...); print("Done terra::plot")}
+    terra::plot
   }
   if (class(x) == "list") {
-    plot.r(x[[1]], ..., add = add)
+    plot.r(x[[1]], add = add, ...)
     for (r in x[-1]) {
-      plot.r(r, ..., add = TRUE)
+      plot.r(r, add = TRUE, ...)
     }
   } else {
-    plot.r(x, ..., add = add)
+    plot.r(x, add = add, ...)
   }
   return(x)
 }
 
-plot.stations <- function(x, start, stop, ..., add = TRUE) {
-  stations.eobs(x, start = start, stop = stop, ..., return.vect = TRUE) %>%
+plot.stations <- function(x, start, stop, add = TRUE, ...) {
+  stations.eobs(x, start = start, stop = stop, return.vect = TRUE, ...) %>%
     terra::plot(add = add)
   return(x)
 }
 
 plot.borders <- function(x, region, featuretype = "State", add = TRUE, ...) {
-  print("Starting plot.borders")
+  # R usa lazy-evaluation! Se x non viene citato prima del plot ed è il risultato di un plot non viene calcolato...
+  x
   vect(region.borders(region, featuretype = featuretype, ...)) %>%
     terra::plot(add = add)
-  print("Done plot.borders")
   return(x)
 }
 
@@ -70,7 +70,7 @@ plot.region <- function(x,
   if (!is.null(region)) {
     x <- region.crop(x, region, featuretype)
   }
-  plot.raster(x, is.correction = is.correction, ..., add = F)
+  plot.raster(x, is.correction = is.correction, add = FALSE, ...)
   if(stations) plot.stations(x, start = start, stop = stop, add = TRUE)
   if(borders) plot.borders(x, region, featuretype, add = TRUE)
   return(x)
