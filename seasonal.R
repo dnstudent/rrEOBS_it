@@ -14,7 +14,7 @@ clino <- terra::tapp(clino,
   index = c(rep(0, 3), rep(1, 6), rep(0, 3)),
   fun = sum, na.rm = T) %>%
   raster.aggregate(12, mean, na.rm = T, crop = T)
-names(clino) <- c("Cold", "Warm")
+names(clino) <- c("Freddi", "Caldi")
 
 eobs <- rast(paste0(path.monthly.temp, "eobs_it_month.tif")) %>%
   terra::subset(seq(as.Date("1961-04-01"), as.Date("1990-09-30"), by = "day") %>%
@@ -25,7 +25,7 @@ index.s <- (substr(names(eobs), 6, 7) %>% as.numeric() + 2) %/% 6
 eobs <- eobs %>%
   terra::tapp(index = index.y + index.s, fun = sum, na.rm = T) %>%
   terra::tapp(index = rep(c(1, 0)), fun = mean, na.rm = T)
-names(eobs) <- c("Warm", "Cold")
+names(eobs) <- c("Caldi", "Freddi")
 
 ext(clino) <- ext(eobs)
 

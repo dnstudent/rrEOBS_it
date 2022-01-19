@@ -43,12 +43,16 @@ region.borders <- function(region, featuretype = "State", ...) {
 
 
 region.crop <- function(x, region, featuretype = "State", crop.out = TRUE, ...) {
+  if (class(region)[[1]] == "character") {
+    if (crop.out) {
+      region <- vect(region.borders(region, featuretype, ...))
+      crs(region) <- crs(x)
+    }
+    else region <- region.bbox(region, featuretype, ...)
+  }
   if (!crop.out) {
-    bb <- region.bbox(region, featuretype, ...)
-    return(terra::crop(x, bb, snap = "out"))
+    return(terra::crop(x, region, snap = "out"))
   } else {
-    borders <- vect(region.borders(region, featuretype, ...))
-    crs(borders) <- crs(x)
-    return(terra::mask(x %>% terra::crop(borders), borders) %>% terra::trim())
+    return(terra::mask(x %>% terra::crop(region, snap = "out"), region))
   }
 }

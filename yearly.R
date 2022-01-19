@@ -53,25 +53,27 @@ pdf(paste0(path.results, "yearly.pdf"),
 plot.raster(correction_matrix, is.correction = T, range = 500)
 dev.off()
 
-pdf(paste0(path.results, "regions.pdf"),
-    width = 10,
-    height = 5,
-    pointsize = 10)
-par(mfrow = c(2, 2))
-plot.regions(correction_matrix,
-  c("Valle d'Aosta, Italy",
-    "Trentino, Italy",
-    "Emilia-Romagna, Italy",
-    "Calabria, Italy"),
-  is.correction = T,
-  range = 300,
-  featuretypes = "State",
-  stations = T,
-  start = from,
-  stop = to,
-  borders = T
-)
-dev.off()
+for (region in c(
+  "Veneto",
+  "Trentino",
+  "Emilia-Romagna",
+  "Toscana"
+)) {
+  region1 <- paste0(region, ", Italy")
+  pdf(paste0(path.results, region, "_y.pdf"), pointsize = 10, height = 5, width = 5)
+  plot.region(correction_matrix,
+              region1,
+              featuretype = "State",
+              is.correction = T,
+              range = 300,
+              stations = T,
+              start = from,
+              stop = to,
+              borders = T,
+              crop.out = F
+  )
+  dev.off()
+}
 
 correction.coarse.mean <- raster.aggregate(correction_matrix, 5, na.rm = T)
 # 
@@ -81,7 +83,7 @@ correction.coarse.mean <- raster.aggregate(correction_matrix, 5, na.rm = T)
 stations.density <- stations_op(correction.coarse.mean, from, to, fun = length, na.fill = 0)
 
 stations.density.agg <- terra::classify(stations.density,
-  c(0, 2, 10, terra::minmax(stations.density)[2]),
+  c(0, 0, 1, 2, 4, 10, 15, 20, terra::minmax(stations.density)[2]),
   include.lowest = T,
   othersNA = F
 )

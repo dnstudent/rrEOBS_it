@@ -64,11 +64,12 @@ plot.region <- function(x,
                         start = NULL,
                         stop = NULL,
                         borders = FALSE,
+                        crop.out = TRUE,
                         station_args = c(), # Yet to be implemented
                         ...)
 {
   if (!is.null(region)) {
-    x <- region.crop(x, region, featuretype)
+    x <- region.crop(x, region, featuretype, crop.out)
   }
   plot.raster(x, is.correction = is.correction, add = FALSE, ...)
   if(stations) plot.stations(x, start = start, stop = stop, add = TRUE)
@@ -84,12 +85,13 @@ plot.regions <- function(x,
                          start = NULL,
                          stop = NULL,
                          borders = FALSE,
+                         crop.out = TRUE,
                          station_args = c(), # Yet to be implemented
                          ...) {
   if (length(featuretypes) == 1) {
     featuretypes <- rep_len(featuretypes, length(regions))
   }
   for (i in 1:length(regions)) {
-    plot.region(x, regions[i], featuretypes[i], is.correction, stations, start, stop, borders, station_args, ...)
+    plot.region(x, regions[i], featuretypes[i], is.correction, stations, start, stop, borders, crop.out, station_args, ...)
   }
 }

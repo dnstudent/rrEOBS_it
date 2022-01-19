@@ -3,6 +3,11 @@ library(terra)
 
 source("geo_data.R")
 
+raster.rename <- function(x, lnames) {
+  names(x) <- lnames
+  return(x)
+}
+
 trim_size.col <- function(x, fact) {
   return(ncol(x) %% fact)
 }

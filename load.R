@@ -14,6 +14,8 @@ path.eobs <- "/Users/davidenicoli/Local_Workspace/Datasets/EOBS/"
 path.gtopo <- "/Users/davidenicoli/Local_Workspace/Datasets/GTOPO30/"
 path.arcis <- "/Users/davidenicoli/Local_Workspace/Datasets/ArCIS/"
 path.borders <- "/Users/davidenicoli/Local_Workspace/LabClima/borders/"
+path.arcisVeobs <- "/Users/davidenicoli/OneDrive - Università degli Studi di Milano/Uni/Workspace/LabClima/rrEOBS_it/rasters/arcisVeobs/"
+path.arciscutVeobs <- "/Users/davidenicoli/OneDrive - Università degli Studi di Milano/Uni/Workspace/LabClima/rrEOBS_it/rasters/arcisVeobs/cut/"
 
 file.clino.yearly <- paste0(path.yearly, "CLINO_GRID_ITA_P_FINALE_MONTHLY_ASCII_ANNO")
 file.clino.monthly <- list.files(path.monthly, full.names=TRUE)
